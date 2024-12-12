@@ -1,3 +1,12 @@
+GIT
+  remote: https://github.com/ViktorArkaliuk/omniauth-oauth2
+  revision: b29ba22e8c668f6f433c13343cae779441436f9e
+  branch: master
+  specs:
+    omniauth-oauth2 (1.8.0)
+      oauth2 (>= 2.0.2, < 3)
+      omniauth (~> 2.0)
+
 PATH
   remote: .
   specs:
@@ -68,9 +77,6 @@ GEM
       hashie (>= 3.4.6)
       rack (>= 2.2.3)
       rack-protection
-    omniauth-oauth2 (1.8.0)
-      oauth2 (>= 1.4, < 3)
-      omniauth (~> 2.0)
     parallel (1.23.0)
     parser (3.2.2.3)
       ast (~> 2.4.1)
@@ -168,6 +174,7 @@ DEPENDENCIES
   listen (~> 3)
   multi_json (~> 1)
   omniauth-auth0!
+  omniauth-oauth2!
   pry (~> 0)
   rack-test (~> 2, >= 2.0.2)
   rake (~> 13)
@@ -180,4 +187,4 @@ DEPENDENCIES
   webmock (~> 3)
 
 BUNDLED WITH
-   2.3.7
+   2.3.26
