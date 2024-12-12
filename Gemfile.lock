@@ -12,7 +12,6 @@ PATH
   specs:
     omniauth-auth0 (3.1.1)
       omniauth (~> 2)
-      omniauth-oauth2 (~> 1.8.0)
 
 GEM
   remote: https://rubygems.org/

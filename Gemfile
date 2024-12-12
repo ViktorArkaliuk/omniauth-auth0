@@ -12,7 +12,7 @@ group :development do
   gem 'shotgun', '~> 0', '>= 0.9.2'
   gem 'sinatra', '~> 3'
   gem 'thin', '~> 1'
-  gem 'omniauth-oauth2', git: 'https://github.com/ViktorArkaliuk/omniauth-oauth2', branch: 'master'
+  gem 'omniauth-oauth2', git: 'https://github.com/ViktorArkaliuk/omniauth-oauth2', branch: 'master', require: false
 end
 
 group :test do
