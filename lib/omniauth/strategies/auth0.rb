@@ -1,13 +1,3 @@
-# frozen_string_literal: true
-
-require 'base64'
-require 'uri'
-require 'securerandom'
-require 'omniauth-oauth2'
-require 'omniauth/auth0/jwt_validator'
-require 'omniauth/auth0/telemetry'
-require 'omniauth/auth0/errors'
-
 module OmniAuth
   module Strategies
     # Auth0 OmniAuth strategy
@@ -15,15 +5,15 @@ module OmniAuth
       include OmniAuth::Auth0::Telemetry
 
       option :name, 'auth0'
+      args %i[client_id client_secret domain]
 
-      args %i[
-        client_id
-        client_secret
-        domain
-      ]
+      # Logger
+      logger = Logger.new(STDOUT)
+      logger.level = Logger::DEBUG
 
       # Setup client URLs used during authentication
       def client
+        logger.debug("Configuring client URLs with domain: #{domain_url}")
         options.client_options.site = domain_url
         options.client_options.authorize_url = '/authorize'
         options.client_options.token_url = '/oauth/token'
@@ -31,16 +21,16 @@ module OmniAuth
         super
       end
 
-      # Use the "sub" key of the userinfo returned
-      # as the uid (globally unique string identifier).
-      uid { raw_info['sub'] }
+      # Use the "sub" key of the userinfo returned as the uid (globally unique string identifier).
+      uid {
+        logger.debug("UID extracted: #{raw_info['sub']}")
+        raw_info['sub']
+      }
 
       # Build the API credentials hash with returned auth data.
       credentials do
-        credentials = {
-          'token' => access_token.token,
-          'expires' => true
-        }
+        logger.debug("Building credentials for access_token: #{access_token.token}")
+        credentials = { 'token' => access_token.token, 'expires' => true }
 
         if access_token.params
           credentials.merge!(
@@ -50,13 +40,12 @@ module OmniAuth
           )
         end
 
-        # Retrieve and remove authorization params from the session
+        # Log session and token verification
         session_authorize_params = session['authorize_params'] || {}
         session.delete('authorize_params')
-
         auth_scope = session_authorize_params[:scope]
         if auth_scope.respond_to?(:include?) && auth_scope.include?('openid')
-          # Make sure the ID token can be verified and decoded.
+          logger.debug("Verifying ID token: #{credentials['id_token']}")
           jwt_validator.verify(credentials['id_token'], session_authorize_params)
         end
 
@@ -65,14 +54,13 @@ module OmniAuth
 
       # Store all raw information for use in the session.
       extra do
-        {
-          raw_info: raw_info
-        }
+        logger.debug("Storing raw info: #{raw_info}")
+        { raw_info: raw_info }
       end
 
-      # Build a hash of information about the user
-      # with keys taken from the Auth Hash Schema.
+      # Build a hash of information about the user with keys taken from the Auth Hash Schema.
       info do
+        logger.debug("User info: #{raw_info}")
         {
           name: raw_info['name'] || raw_info['sub'],
           nickname: raw_info['nickname'],
@@ -90,16 +78,18 @@ module OmniAuth
 
         # Generate nonce
         params[:nonce] = SecureRandom.hex
-        # Generate leeway if none exists
         params[:leeway] = 60 unless params[:leeway]
+
+        # Log authorization parameters
+        logger.debug("Authorization params: #{params}")
 
         # Store authorize params in the session for token verification
         session['authorize_params'] = params.to_hash
-
         params
       end
 
       def build_access_token
+        logger.debug("Building access token with telemetry header")
         options.token_params[:headers] = { 'Auth0-Client' => telemetry_encoded }
         super
       end
@@ -107,27 +97,30 @@ module OmniAuth
       # Declarative override for the request phase of authentication
       def request_phase
         if no_client_id?
-          # Do we have a client_id for this Application?
+          logger.error("Missing client_id")
           fail!(:missing_client_id)
         elsif no_client_secret?
-          # Do we have a client_secret for this Application?
+          logger.error("Missing client_secret")
           fail!(:missing_client_secret)
         elsif no_domain?
-          # Do we have a domain for this Application?
+          logger.error("Missing domain")
           fail!(:missing_domain)
         else
-          # All checks pass, run the Oauth2 request_phase method.
+          logger.debug("Running OAuth2 request phase")
           super
         end
       end
 
       def callback_phase
+        logger.debug("Entering callback phase")
         super
       rescue OmniAuth::Auth0::TokenValidationError => e
+        logger.error("Token validation error: #{e.message}")
         fail!(:token_validation_error, e)
       end
 
       private
+
       def jwt_validator
         @jwt_validator ||= OmniAuth::Auth0::JWTValidator.new(options)
       end
@@ -137,14 +130,17 @@ module OmniAuth
         return @raw_info if @raw_info
 
         if access_token["id_token"]
+          logger.debug("Decoding JWT ID Token")
           claims, header = jwt_validator.decode(access_token["id_token"])
           @raw_info = claims
         else
+          logger.debug("Fetching userinfo from #{options.client_options.userinfo_url}")
           userinfo_url = options.client_options.userinfo_url
           @raw_info = access_token.get(userinfo_url).parsed
         end
 
-        return @raw_info
+        logger.debug("Raw info: #{@raw_info}")
+        @raw_info
       end
 
       # Check if the options include a client_id
