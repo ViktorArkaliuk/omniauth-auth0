@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/ViktorArkaliuk/omniauth-oauth2
-  revision: b29ba22e8c668f6f433c13343cae779441436f9e
+  revision: f280ad3b6af1f09378793b0bab5c4d4e170da7c6
   branch: master
   specs:
     omniauth-oauth2 (1.8.0)
